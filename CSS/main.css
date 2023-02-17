@@ -1,0 +1,28 @@
+#myroot {
+    margin: 30px;
+    padding: 30px;
+}
+
+#hello {
+    color: white;
+    /* background-color: orange; */
+}
+
+#upload {
+    background-color: white;
+}
+
+#usernamelogin {
+    background-color: rgb(255, 0, 0);
+    color: white;
+    margin-top: 0px;
+    margin-bottom: 0px;
+}
+
+
+#passwordlogin {
+    background-color: black;
+    color: rgb(168, 15, 15);
+    margin-top: 0px;
+    margin-bottom: 0px;
+}
