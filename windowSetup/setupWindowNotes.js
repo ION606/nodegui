@@ -1,4 +1,5 @@
-const { QDialog, Direction, QWidget, QIcon, QBoxLayout, QPushButton, QLineEdit, QTextEdit, QLabel, AlignmentFlag, QGridLayout, QComboBox } = require("@nodegui/nodegui");
+const { QDialog, Direction, QAction, QPixmap, QBoxLayout, QPushButton, QLineEdit, QTextEdit, QLabel, QKeySequence, QShortcut, QGridLayout, QComboBox } = require("@nodegui/nodegui");
+const path = require('path');
 const alert = require("../utils/alert");
 
 
@@ -27,6 +28,7 @@ async function createNewNoteDialogue(client, username) {
             dialogue.close();
         });
 
+
         const layout = new QBoxLayout(Direction.TopToBottom);
         layout.addWidget(notetitleLine);
         layout.addWidget(notecontent);
@@ -34,7 +36,6 @@ async function createNewNoteDialogue(client, username) {
 
         dialogue.setLayout(layout);
         dialogue.show();
-        // resolve(["hello", "world"]);
     });
 }
 
@@ -46,7 +47,7 @@ async function search(client, username, txt, bar, layout) {
 
     const note = new QDialog();
     const noteTitle = new QLabel();
-    const noteContent = new QLabel();
+    const noteContent = new QTextEdit();
     const noteTimeStamp = new QLabel();
 
     noteTitle.setText(doc.title);
@@ -57,6 +58,9 @@ async function search(client, username, txt, bar, layout) {
     noteTitle.setInlineStyle("text-align: center; font-size: 20px;");
     noteTimeStamp.setInlineStyle("text-align: center; margin-bottom: 15px;");
     noteContent.setInlineStyle("text-align: center;");
+    noteContent.addEventListener('textChanged', () => {
+        note.setWindowTitle(`Viewing note "${doc.title}"  (unsaved)`);
+    });
 
     const delBtn = new QPushButton();
     delBtn.setText("Delete");
@@ -70,15 +74,41 @@ async function search(client, username, txt, bar, layout) {
             note.close();
         }
     });
+    
+    const submitBtn = new QPushButton();
+    submitBtn.setText("Submit");
+    submitBtn.setInlineStyle('margin-top: 20px;');
+    submitBtn.addEventListener('released', async () => {
+        const newContent = noteContent.toPlainText();
+        const editDate = new Date().getTime()/1000;
 
+        await dbo.updateOne({titleLower: txt.toLowerCase()}, {$set: {content: newContent, lastEditDate: editDate}});
+        await alert("note updated!");
+        note.close();
+    });
+
+
+    
     const noteLayout = new QGridLayout();
+
+    const keyEvent = new QAction();
+    keyEvent.setShortcut(new QKeySequence('CTRL+S'));
+    keyEvent.addEventListener('triggered', async () => {
+        const newContent = noteContent.toPlainText();
+        const editDate = new Date().getTime()/1000;
+        await dbo.updateOne({titleLower: txt.toLowerCase()}, {$set: {content: newContent, lastEditDate: editDate}});
+        note.setWindowTitle(`Viewing note "${doc.title}"  (saved)`);
+    });
+
+    noteContent.addAction(keyEvent);
     
     noteLayout.addWidget(noteTitle);
     noteLayout.addWidget(noteTimeStamp, 2);
     noteLayout.addWidget(noteContent, 3);
-    noteLayout.addWidget(delBtn, 4);
+    noteLayout.addWidget(submitBtn, 4);
+    noteLayout.addWidget(delBtn, 5);
 
-    note.setWindowTitle(`Viewing note "${doc.title}"`);
+    note.setWindowTitle(`Viewing note "${doc.title}"  (saved)`);
     note.isModal(true);
     note.setLayout(noteLayout);
     note.show();

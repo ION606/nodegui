@@ -1,4 +1,4 @@
-const { QMainWindow , QBoxLayout, QWidget, Direction, QPushButton, ToolButtonPopupMode, QGridLayout } = require("@nodegui/nodegui");
+const { QMainWindow , QBoxLayout, QWidget, Direction, QPushButton, QGridLayout } = require("@nodegui/nodegui");
 const { MongoClient, ServerApiVersion } = require('mongodb');
 const fs = require('fs');
 const wait = require('node:timers/promises').setTimeout;
@@ -39,7 +39,6 @@ async function main() {
 
         setup(client, rootLayout, dbLayout, notesLayout, botLayout);
     } else {
-        console.log(1279322);
         const loginBtn = new QPushButton();
         loginBtn.setText("Login");
         loginBtn.addEventListener('released', login);
