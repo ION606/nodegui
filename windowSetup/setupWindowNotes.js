@@ -1,7 +1,7 @@
 const { QDialog, Direction, QWidget, QIcon, QBoxLayout, QPushButton, QLineEdit, QTextEdit, QLabel, AlignmentFlag, QGridLayout, QComboBox } = require("@nodegui/nodegui");
 const alert = require("../utils/alert");
 
-const notesMap = new Map();
+
 
 /**
  * @description returns [notename, notecontent]
@@ -44,6 +44,7 @@ async function search(client, username, txt, bar, layout) {
     const doc = await dbo.findOne({titleLower: txt.toLowerCase()});
     if (!doc) { return bar.setStyleSheet("border-width: 1px; border-color: red; border-style: solid;"); }
 
+    const note = new QDialog();
     const noteTitle = new QLabel();
     const noteContent = new QLabel();
     const noteTimeStamp = new QLabel();
@@ -53,17 +54,30 @@ async function search(client, username, txt, bar, layout) {
     noteTimeStamp.setText(`Last edited at ${new Date(doc.lastEditDate).toLocaleString()}`);
     noteTimeStamp.setDisabled(true);
 
-    noteTitle.setStyleSheet("text-align: center;");
-    noteTimeStamp.setStyleSheet("text-align: center;");
-    noteContent.setStyleSheet("text-align: center;");
+    noteTitle.setInlineStyle("text-align: center; font-size: 20px;");
+    noteTimeStamp.setInlineStyle("text-align: center; margin-bottom: 15px;");
+    noteContent.setInlineStyle("text-align: center;");
+
+    const delBtn = new QPushButton();
+    delBtn.setText("Delete");
+    delBtn.setInlineStyle('margin-top: 20px;');
+    delBtn.addEventListener('released', async () => {
+        const conf = await alert(`Are you sure you want to delete "${doc.title}"?`, "confirmation", null, true);
+        if (conf) {
+            await dbo.deleteOne({titleLower: txt.toLowerCase()});
+            await alert('Note deletd!');
+            await setupAllNotes(client, username, layout, bar, true);
+            note.close();
+        }
+    });
 
     const noteLayout = new QGridLayout();
     
     noteLayout.addWidget(noteTitle);
     noteLayout.addWidget(noteTimeStamp, 2);
     noteLayout.addWidget(noteContent, 3);
+    noteLayout.addWidget(delBtn, 4);
 
-    const note = new QDialog();
     note.setWindowTitle(`Viewing note "${doc.title}"`);
     note.isModal(true);
     note.setLayout(noteLayout);
@@ -71,14 +85,28 @@ async function search(client, username, txt, bar, layout) {
 }
 
 
-async function setupAllNotes(client, username, layout, searchbar) {
+/**
+ * @param {QGridLayout} layout
+ */
+async function setupAllNotes(client, username, layout, searchbar, replacing = false) {
     return new Promise(async (resolve) => {
-        const allNotes = new QComboBox();
+        var allNotes;
+        const notesMap = new Map();
+
+        if (replacing) {
+            const obj = layout.parent().children().find((child) => child.objectName() == "all_notes");
+            obj.deleteLater();
+            layout.removeWidget(obj);
+        }
+
+        allNotes = new QComboBox();
+
+        allNotes.setObjectName("all_notes");
         allNotes.addItem(undefined, 'no note selected');
     
         const dbo = client.db('database_custom_1').collection(`${username}.notes`);
         const docs = await dbo.find().toArray();
-        
+
         for (doc of docs) {
             notesMap.set(doc.title, doc);
         }
@@ -87,7 +115,9 @@ async function setupAllNotes(client, username, layout, searchbar) {
         allNotes.addEventListener('activated', (ind) => {
             search(client, username, allNotes.itemText(ind), searchbar, layout);
         });
+        
         layout.addWidget(allNotes, 0);
+        if (replacing) layout.update();
 
         resolve(true);
     });
@@ -100,8 +130,14 @@ async function setupAllNotes(client, username, layout, searchbar) {
 async function setupWindowNotes(client, username, sessionId, layout) {
     // const label = new QLabel();
     // label.setText("New Note");
+
+    const searchbar = new QLineEdit();
+    searchbar.setObjectName("searchbar");
+    searchbar.addEventListener('editingFinished', () => { search(client, username, searchbar.text(), searchbar, layout); });
+    searchbar.addEventListener('textChanged', () => {searchbar.setStyleSheet("border-style: none;"); });
     
     const newNoteBtn = new QPushButton();
+    newNoteBtn.setObjectName("newNoteBtn")
     newNoteBtn.setText("New Note");
     newNoteBtn.addEventListener('clicked', async () => {
         const [title, content] = await createNewNoteDialogue(client, username);
@@ -111,12 +147,9 @@ async function setupWindowNotes(client, username, sessionId, layout) {
 
         const d = (new Date);
         d.setMilliseconds(0);
-        dbo.insertOne({titleLower: title.toLowerCase(), title: title, content: content, lastEditDate: d.getTime()/1000});
+        await dbo.insertOne({titleLower: title.toLowerCase(), title: title, content: content, lastEditDate: d.getTime()/1000});
+        setupAllNotes(client, username, layout, searchbar, true);
     });
-
-    const searchbar = new QLineEdit();
-    searchbar.addEventListener('editingFinished', () => { search(client, username, searchbar.text(), searchbar, layout); });
-    searchbar.addEventListener('textChanged', () => {searchbar.setStyleSheet("border-style: none;"); });
 
     await setupAllNotes(client, username, layout, searchbar);
     layout.addWidget(searchbar, 1);

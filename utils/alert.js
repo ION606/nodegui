@@ -1,6 +1,6 @@
 const { QWidget, QLabel, QPushButton, QIcon, QGridLayout, QDialog, QDial } = require('@nodegui/nodegui');
 
-function alert(txt, title = "alert", icon = null) {
+function alert(txt, title = "alert", icon = null, isConf = false) {
     return new Promise((resolve) => {
         const layout = new QGridLayout();
         const label = new QLabel();
@@ -8,7 +8,8 @@ function alert(txt, title = "alert", icon = null) {
 
         const ok = new QPushButton();
         ok.setText("OK");
-        ok.setStyleSheet("margin: 10px;")
+        ok.setStyleSheet("margin: 10px;");
+        ok.setFixedWidth(100);
     
         const window = new QDialog();
         window.setStyleSheet("margin: 10px;");
@@ -17,6 +18,17 @@ function alert(txt, title = "alert", icon = null) {
             resolve(true);
             window.close();
         });
+
+        if (isConf) {
+            const cancel = new QPushButton();
+            cancel.setText("CANCEL");
+            cancel.setFixedWidth(100);
+            cancel.addEventListener('released', () => {
+                resolve(false);
+                window.close();
+            })
+            layout.addWidget(cancel, 2, 1);
+        }
 
         window.setModal(true);
         layout.addWidget(label, 0);
