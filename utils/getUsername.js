@@ -1,3 +1,7 @@
+const fs = require('fs');
+const path = require('path');
+const alert = require('../utils/alert.js');
+
 const remSessionId = () => {
     const p = path.resolve(__dirname, "../config.json");
     const data = fs.readFileSync(p, 'utf8');
@@ -6,8 +10,10 @@ const remSessionId = () => {
     delete obj["sessionId"];
     json = JSON.stringify(obj);
     fs.writeFile(p, json, (err) => {
-        if (err) { console.error(err); }
-        alert("an error has occured, please restart your application!", "ERROR");
+        if (err) {
+            console.error(err);
+            alert("an error has occured, please restart your application!", "ERROR");
+        }
     });
 }
 

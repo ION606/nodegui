@@ -1,9 +1,9 @@
 const { GridFSBucket } = require('mongodb');
-const { QComboBox, QBoxLayout, QLineEdit, QPushButton, QLabel } = require('@nodegui/nodegui');
+const { QComboBox, QBoxLayout, QLineEdit, QPushButton, QLabel, AlignmentFlag } = require('@nodegui/nodegui');
 const fs = require('fs');
 const path = require("path");
 const { getAndUploadFile } = require('../database/upload.js');
-const addToJSONFile = require('../utils/addToLocalConfig.js');
+const {addToJSONFile} = require('../utils/editJSON.js');
 const alert = require('../utils/alert.js');
 
 
@@ -41,12 +41,8 @@ async function setUpDbWindow(client, username, layout) {
         getFile(bucket, filename);
     });
 
-    
-    // const saveLabel = new QLabel();
-    // saveLabel.setText("Save Path");
-    // saveLabel.setStyleSheet('margin-top:10px;');
-    // layout.addWidget(saveLabel);
-    layout.addWidget(headers);
+
+    layout.addWidget(headers, AlignmentFlag.AlignCenter);
 
     const pathstr = require('../config.json').filepath || path.resolve(__dirname, `../files/`);
     const filepathwidge = new QLineEdit();
@@ -65,11 +61,17 @@ async function setUpDbWindow(client, username, layout) {
         });
     })
 
-    layout.addWidget(filepathwidge);
+    // Up way too high for some reason
+    // const saveLabel = new QLabel();
+    // saveLabel.setText("Save Path");
+    // saveLabel.setStyleSheet('margin:0px;');
+    // layout.addWidget(saveLabel, AlignmentFlag.AlignCenter);
+
+    layout.addWidget(filepathwidge, AlignmentFlag.AlignCenter);
     const uploadBtn = new QPushButton();
     uploadBtn.setText("File Upload");
     uploadBtn.addEventListener('released', getAndUploadFile);
-    layout.addWidget(uploadBtn);
+    layout.addWidget(uploadBtn, AlignmentFlag.AlignCenter);
 }
 
 

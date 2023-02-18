@@ -1,9 +1,9 @@
 const { QDialog, QGridLayout, QLineEdit, WindowState, QPushButton, QIcon } = require('@nodegui/nodegui');
 const { MongoClient, ServerApiVersion, GridFSBucket } = require('mongodb');
-const fs = require('fs');
-const path = require("path");
 const { decrypt } = require('./crypto.js');
 const alert = require('../utils/alert.js');
+const { restart } = require('../utils/processManip.js');
+const { addToJSONFile } = require('../utils/editJSON.js');
 const mongouri = require('../config.json').mongooseURI;
 const uuid5 = require('uuid').v4;
 
@@ -16,22 +16,15 @@ async function createNewSession(client, username) {
         const dbo = client.db('database_custom_1').collection('appsessions');
         const sessionId = uuid5();
         dbo.insertOne({sessionId: sessionId, username: username});
-        const p = path.resolve(__dirname, "../config.json");
-        const data = fs.readFileSync(p, 'utf8');
 
         const cgo = client.db('database_custom_1').collection('userConfigs');
         const cdoc = await cgo.findOne({username: username});
         if (!cdoc) {
             cgo.insertOne({notesEnabled: true, hasBot: false, username: username});
         }
-        
-        obj = JSON.parse(data); //now it an object
-        obj.sessionId = sessionId; //add some data
-        json = JSON.stringify(obj); //convert it back to json
-        fs.writeFile(p, json, (err) => {
-            if (err) { return reject(err); }
-            resolve();
-        }); // write it back 
+
+        await addToJSONFile("sessionId", sessionId);
+        resolve(true);
     });
 }
 
@@ -51,17 +44,8 @@ async function authorizeAndLogin(username, password, window) {
     }
 
     createNewSession(client, username).then(async () => {
-        const clicked = await alert("you're logged in!", "SUCCESS");
-
-        //Refresh the main window
-        process.on("exit", function () {
-            require("child_process").spawn(process.argv.shift(), process.argv, {
-                cwd: process.cwd(),
-                detached : true,
-                stdio: "inherit"
-            });
-        });
-        process.exit();
+        await alert("you're logged in!", "SUCCESS");
+        restart();
     }).catch((err) => {
         console.error(err);
         alert(err.message, "ERROR");
@@ -79,8 +63,22 @@ async function createLoginDialogue() {
     username.setPlaceholderText("username");
 
     const password = new QLineEdit();
+    var passRaw = "";
     password.setObjectName('password');
     password.setPlaceholderText("password");
+    password.addEventListener('textChanged', async () => {
+        const txt = password.text();
+        if (txt.endsWith('•') && txt.length >= passRaw.length) return;
+
+        if (txt.length > passRaw.length) {
+            passRaw += txt[txt.length - 1];
+        } else {
+            passRaw = passRaw.substring(0, passRaw.length - 1);
+        }
+
+        const newtext = "•".repeat(txt.length);
+        password.setText(newtext);
+    });
 
     const ok = new QPushButton();
     ok.setText("OK");
@@ -104,7 +102,7 @@ async function createLoginDialogue() {
 
     ok.addEventListener('clicked', async () => {
         const uname = username.text();
-        const upass = password.text();
+        const upass = passRaw;
         let triggerClose = false;
 
         if (!uname) {
@@ -125,13 +123,6 @@ async function createLoginDialogue() {
 
     dialogue.setWindowTitle("login");
     dialogue.show();
-
-    // const loginbox = new QWidget();
-    // loginbox.setStyleSheet("color: white;");
-    // loginbox.setLayout(loginboxLayout);
-
-    // password.addEventListener('rejected', loginbox.close);
-    // loginbox.show();
 }
 
 async function login() {
