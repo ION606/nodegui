@@ -27,17 +27,17 @@ async function main() {
     const dbLayout = new QBoxLayout(Direction.TopToBottom);
     const notesLayout = new QGridLayout();
     // notesLayout.setSpacing(2);
-    const botLayout = new QBoxLayout(Direction.TopToBottom);
+    const mailayout = new QGridLayout();
     // centralWidget.setLayout(rootLayout);
 
     if (sessionId) {
         const client = await mongoconnection;
 
         global.win = win;
-        const headerSetupDone = await setupHeader(client, getUsername, styles, rootLayout, dbLayout, notesLayout, botLayout);
+        const headerSetupDone = await setupHeader(client, getUsername, styles, rootLayout, dbLayout, notesLayout, mailayout);
         if (!headerSetupDone) return process.exit();
 
-        setup(client, rootLayout, dbLayout, notesLayout, botLayout);
+        setup(client, rootLayout, dbLayout, notesLayout, mailayout);
     } else {
         const loginBtn = new QPushButton();
         loginBtn.setText("Login");

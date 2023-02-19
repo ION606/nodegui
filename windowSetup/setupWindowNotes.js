@@ -1,5 +1,4 @@
-const { QDialog, Direction, QAction, QPixmap, QBoxLayout, QPushButton, QLineEdit, QTextEdit, QLabel, QKeySequence, QShortcut, QGridLayout, QComboBox } = require("@nodegui/nodegui");
-const path = require('path');
+const { QDialog, Direction, QAction, QBoxLayout, QPushButton, QLineEdit, QTextEdit, QLabel, QKeySequence, QGridLayout, QComboBox } = require("@nodegui/nodegui");
 const alert = require("../utils/alert");
 
 

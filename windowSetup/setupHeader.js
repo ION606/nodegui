@@ -18,7 +18,7 @@ async function makeHeader(client, username, styles, rootlayout, dblayout, notesl
             headers.addItem(undefined, "Database");
 
             if (uconfigs.notesEnabled) headers.addItem(undefined, "Notes");
-            if (uconfigs.hasBot) headers.addItem(undefined, "Selmer Bot");
+            if (uconfigs.hasBot) headers.addItem(undefined, "RPI Mail");
 
 
             //#region setting up the layouts
@@ -47,7 +47,7 @@ async function makeHeader(client, username, styles, rootlayout, dblayout, notesl
             widgeTemp.setObjectName('myroot');
             widgeTemp.setLayout(botlayout);
             widgeTemp.setStyleSheet(styles);
-            tab.addTab(widgeTemp, blankIcon, "selmer bot");
+            tab.addTab(widgeTemp, blankIcon, "RPI Email");
 
             //#endregion
 
