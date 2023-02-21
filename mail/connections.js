@@ -24,7 +24,8 @@ function saveReadConfig(val) {
     });
 }
 
-function createBrowserPage(email) {
+
+function createBrowserPage(email, hasAttachments) {
     return new Promise((resolve) => {
         const browser = new QTextBrowser();
         browser.setOpenExternalLinks(true);
@@ -40,6 +41,7 @@ function createBrowserPage(email) {
         resolve(browser);
     });
 }
+
 
 function getPage(ind, layout) {
     // const keys = Array.from(emailMap.keys());
@@ -86,7 +88,7 @@ function getPageQuery(queryArr) {
             }
 
             // console.log(email);
-            await createBrowserPage(email);
+            await createBrowserPage(email, (email.attachments.length > 0));
         });
 
         layout.addWidget(btn, i);

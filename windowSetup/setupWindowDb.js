@@ -38,6 +38,10 @@ async function setUpDbWindow(client, username, layout) {
     headers.addEventListener('activated', async (ind) => {
         const filename = headers.itemText(ind).toLowerCase();
         if (filename == 'no file selected') return;
+
+        const downloadFileBool = await alert(`Download "${filename}"?`, "Warning!", null, true);
+        if (!downloadFileBool) return;
+
         getFile(bucket, filename);
     });
 

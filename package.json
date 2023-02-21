@@ -19,5 +19,8 @@
   },
   "author": "ION606",
   "license": "ISC",
-  "description": ""
+  "description": "",
+  "devDependencies": {
+    "@nodegui/packer": "^1.5.0"
+  }
 }
