@@ -1,0 +1,24 @@
+example email attachment below
+
+[
+    {
+        type: 'attachment',
+        content: buffer_here
+        contentType: 'application/pdf',
+        partId: '2',
+        release: null,
+        contentDisposition: 'attachment',
+        filename: 'filename.pdf',
+        contentId: 'content_id_here',
+        cid: 'cid_here',
+        headers: Map(5) {
+        'content-type' => [Object],
+        'content-description' => 'filename.pdf',
+        'content-disposition' => [Object],
+        'content-id' => 'content_id_here',
+        'content-transfer-encoding' => 'base64'
+        },
+        checksum: '5100720ff85b1d97f870c490f4639904',
+        size: 33784
+    }
+]

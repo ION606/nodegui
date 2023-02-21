@@ -4,37 +4,73 @@ const {simpleParser} = require('mailparser');
 const path = require('path');
 
 const composeAndSend = require('./compose.js');
-const emailMap = new Map();
+var emailMap = [];
 
 // function saveFiles()
 
+function createBrowserPage(email) {
+    return new Promise((resolve) => {
+        const browser = new QTextBrowser();
+        browser.setOpenExternalLinks(true);
+        browser.setMinimumWidth(700);
+        browser.setMinimumHeight(800);
+        browser.setHtml(email.html || email.textAsHtml);
+        browser.setWindowFilePath(path.resolve(__dirname, '../files/email_files'));
+        browser.setWindowTitle(email.subject);
+        browser.setInlineStyle('background-color: white; color:black');
+        browser.setOpenExternalLinks(true);
+        browser.setOpenLinks(true);
+        browser.show();
+        resolve(browser);
+    });
+}
 
 function getPage(ind, layout) {
-    const keys = Array.from(emailMap.keys());
+    // const keys = Array.from(emailMap.keys());
     const area = new QScrollArea();
     area.setWidgetResizable(true);
 
     for (let i = ind * 20; i < (ind+1) * 20; i++) {
+        if (i >= emailMap.length) break;
+        
         const btn = new QPushButton();
-        btn.setText(keys[i]);
-        btn.addEventListener('released', () => {
-            const email = emailMap.get(keys[i]);
+        btn.setText(emailMap[i].subject);
+           btn.addEventListener('released', async () => {
+            const email = emailMap[i];
 
             if (email.attachments.length > 0) {
-                return console.log(12, email.attachments);
+                return console.log(email.attachments);
             }
 
-            const browser = new QTextBrowser();
-            browser.setOpenExternalLinks(true);
-            browser.setMinimumWidth(700);
-            browser.setMinimumHeight(800);
-            browser.setHtml(email.html);
-            browser.setWindowFilePath(path.resolve(__dirname, '../files/email_files'));
-            browser.setWindowTitle(keys[i]);
-            browser.setInlineStyle('background-color: white; color:black');
-            browser.setOpenExternalLinks(true);
-            browser.setOpenLinks(true);
-            browser.show();
+            // console.log(email);
+            await createBrowserPage(email);
+        });
+
+        layout.addWidget(btn, i);
+    }
+
+    area.setLayout(layout);
+    area.show();
+}
+
+
+function getPageQuery(queryArr) {
+    const layout = new QGridLayout();
+    const area = new QScrollArea();
+    area.setWidgetResizable(true);
+
+    for (let i = 0; i < queryArr.length; i++) {        
+        const btn = new QPushButton();
+        btn.setText(queryArr[i].subject);
+           btn.addEventListener('released', async () => {
+            const email = queryArr[i];
+
+            if (email.attachments.length > 0) {
+                return console.log(email.attachments);
+            }
+
+            // console.log(email);
+            await createBrowserPage(email);
         });
 
         layout.addWidget(btn, i);
@@ -49,7 +85,6 @@ function getPage(ind, layout) {
  *@param {QGridLayout} layout
  */
 async function createConnection(ic, layout) {
-    console.log(ic.email, ic.password);
     const imapConfig = {
         user: ic.email,
         password: ic.password,
@@ -64,15 +99,22 @@ async function createConnection(ic, layout) {
             imap.openBox('INBOX', false, () => {
                 const d = new Date();
                 const monthList = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
-                const monethName = monthList[d.getMonth()];
-                imap.search(['UNSEEN', ['UNDELETED', 'UNDRAFT', ['SINCE', `${monethName} ${(d.getDay() > 7) ? 1 : d.getDay() - 7}, ${d.getFullYear()}`]]], (err, results) => {
+                const monthName = monthList[d.getMonth()];
+                const filterDate = `${monthName} ${(d.getDate() < 7) ? 1 : d.getDate() - 7}, ${d.getFullYear()}`;
+
+                console.log(filterDate);
+
+                // 'UNSEEN', 
+                imap.search(['UNDELETED', 'UNDRAFT', ['SINCE', filterDate]], (err, results) => {
                     const f = imap.fetch(results, {bodies: ''});
                     f.on('message', msg => {
                         msg.on('body', stream => {
                             simpleParser(stream, async (err, parsed) => {
                                 // const {from, subject, textAsHtml, text} = parsed;
-                                // console.log(parsed);
-                                emailMap.set(parsed.subject, parsed);
+                                // emailMap.set(parsed.subject, parsed);
+                                emailMap.push(parsed);
+
+                                // emailMap.set(parsed.date.toString(), parsed);
                                 /* Make API call to save the data
                                 Save the retrieved data into a database.
                                 E.t.c
@@ -107,9 +149,31 @@ async function createConnection(ic, layout) {
         imap.once('end', () => {
             console.log('Connection ended');
             const resPerPage = 20;
+
+            // This is criminally inefficient
+            // emailMap = new Map([...emailMap.entries()].sort((a, b) => {
+            //     const date1 = (new Date(a[1].date)).getTime();
+            //     const date2 = (new Date(b[1].date)).getTime();
+
+            //     console.log(date1, date2);
+            //     return date1 > date2;
+            // }));
             
+            emailMap.sort((a, b) => {
+                const date1 = (new Date(a.date)).getTime()/1000;
+                const date2 = (new Date(b.date)).getTime()/1000;
+
+                return date2 - date1;
+            });
+
             const searchbar = new QLineEdit();
             searchbar.setPlaceholderText('query');
+            searchbar.addEventListener('returnPressed', async () => {
+                const query = searchbar.text();
+                const selectionArr = emailMap.filter((e) => e.subject.indexOf(query) != -1);
+                getPageQuery(selectionArr);
+            });
+
             layout.addWidget(searchbar);
 
             const newEmailBtn = new QPushButton();
@@ -120,7 +184,10 @@ async function createConnection(ic, layout) {
 
             const pages = new QComboBox();
 
-            for (let i = 0; i < Math.floor(emailMap.size % resPerPage) - 1; i++) {
+            var ll = Math.floor(emailMap.length / resPerPage);
+            if (emailMap.length % 20 != 0) ll ++;
+
+            for (let i = 0; i < ll; i++) {
                 const pageBtn = new QPushButton();
                 pageBtn.setText(`Page ${i+1}`);
                 pageBtn.addEventListener('released', () => {

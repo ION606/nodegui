@@ -28,13 +28,14 @@ async function main() {
     const notesLayout = new QGridLayout();
     // notesLayout.setSpacing(2);
     const mailayout = new QGridLayout();
+    const animeLayout = new QGridLayout();
     // centralWidget.setLayout(rootLayout);
 
     if (sessionId) {
         const client = await mongoconnection;
 
         global.win = win;
-        const headerSetupDone = await setupHeader(client, getUsername, styles, rootLayout, dbLayout, notesLayout, mailayout);
+        const headerSetupDone = await setupHeader(client, getUsername, styles, rootLayout, dbLayout, notesLayout, mailayout, animeLayout);
         if (!headerSetupDone) return process.exit();
 
         setup(client, rootLayout, dbLayout, notesLayout, mailayout);
