@@ -1,12 +1,28 @@
 const {QTextBrowser, QScrollArea, QComboBox, QGridLayout, QLabel, QPushButton, QLineEdit, QBoxLayout} = require('@nodegui/nodegui');
 const Imap = require('imap');
 const {simpleParser} = require('mailparser');
+const {addToJSONFile} = require('../utils/editJSON.js');
+const fs = require('fs');
 const path = require('path');
 
 const composeAndSend = require('./compose.js');
+const { restart } = require('../utils/processManip.js');
 var emailMap = [];
 
-// function saveFiles()
+function saveReadConfig(val) {
+    return new Promise((resolve, reject) => {
+        const p = path.resolve(__dirname, "../config.json");
+        const data = fs.readFileSync(p, 'utf8');
+        
+        obj = JSON.parse(data); //now it an object
+        obj.mail.showSeen = val; //add some data
+        json = JSON.stringify(obj); //convert it back to json
+        fs.writeFile(p, json, (err) => {
+            if (err) { return reject(err); }
+            resolve();
+        }); // write it back
+    });
+}
 
 function createBrowserPage(email) {
     return new Promise((resolve) => {
@@ -84,7 +100,7 @@ function getPageQuery(queryArr) {
 /**
  *@param {QGridLayout} layout
  */
-async function createConnection(ic, layout) {
+async function createConnection(ic, layout,) {
     const imapConfig = {
         user: ic.email,
         password: ic.password,
@@ -102,10 +118,12 @@ async function createConnection(ic, layout) {
                 const monthName = monthList[d.getMonth()];
                 const filterDate = `${monthName} ${(d.getDate() < 7) ? 1 : d.getDate() - 7}, ${d.getFullYear()}`;
 
-                console.log(filterDate);
+                // console.log(filterDate);
+ 
+                var filterArr = ['UNDELETED', 'UNDRAFT', ['SINCE', filterDate]];
+                if (!ic.showSeen) filterArr.push('UNSEEN');
 
-                // 'UNSEEN', 
-                imap.search(['UNDELETED', 'UNDRAFT', ['SINCE', filterDate]], (err, results) => {
+                imap.search(filterArr, (err, results) => {
                     const f = imap.fetch(results, {bodies: ''});
                     f.on('message', msg => {
                         msg.on('body', stream => {
@@ -182,6 +200,15 @@ async function createConnection(ic, layout) {
                 composeAndSend(imap, ic.email, ic.password);
             });
 
+            const toggleSeen = new QPushButton();
+            toggleSeen.setText((ic.showSeen) ? "Hide Read Emails" : "Show Read Emails");
+            toggleSeen.addEventListener('clicked', async () => {
+                await saveReadConfig(!ic.showSeen);
+                toggleSeen.setText((!ic.showSeen) ? "Hide Read Emails" : "Show Read Emails");
+                ic.showSeen = !ic.showSeen;
+                restart();
+            });
+
             const pages = new QComboBox();
 
             var ll = Math.floor(emailMap.length / resPerPage);
@@ -203,6 +230,7 @@ async function createConnection(ic, layout) {
                 getPage(ind, l2);
             });
 
+            layout.addWidget(toggleSeen, 3);
             layout.addWidget(pages, 1);
             layout.addWidget(newEmailBtn, 2);
         });

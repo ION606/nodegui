@@ -6,6 +6,7 @@ const { login } = require("./auth/login.js");
 const setup = require('./windowSetup/setupAllWindows.js');
 const setupHeader = require('./windowSetup/setupHeader.js');
 const getUsername = require('./utils/getUsername.js');
+const { checkConnection, setNoNetworkPage } = require('./utils/checkconnectivity.js');
 const { sessionId, mongooseURI } = require('./config.json');
 
 const client = new MongoClient(mongooseURI, { useNewUrlParser: true, useUnifiedTopology: true, serverApi: ServerApiVersion.v1 });
@@ -31,7 +32,15 @@ async function main() {
     const animeLayout = new QGridLayout();
     // centralWidget.setLayout(rootLayout);
 
-    if (sessionId) {
+    const isConnected = await checkConnection();
+
+    if (!isConnected) {
+        setNoNetworkPage(rootLayout);
+        const centralWidget = new QWidget();
+        centralWidget.setLayout(rootLayout);
+        win.setCentralWidget(centralWidget);
+    }
+    else if (sessionId) {
         const client = await mongoconnection;
 
         global.win = win;
@@ -39,7 +48,8 @@ async function main() {
         if (!headerSetupDone) return process.exit();
 
         setup(client, rootLayout, dbLayout, notesLayout, mailayout);
-    } else {
+    }
+    else {
         const loginBtn = new QPushButton();
         loginBtn.setText("Login");
         loginBtn.addEventListener('released', login);

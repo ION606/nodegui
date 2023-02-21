@@ -6,10 +6,11 @@ const alert = require("../utils/alert");
 const { restart } = require('../utils/processManip.js');
 const { addToJSONFile } = require('../utils/editJSON.js');
 
-async function getCredentials() {
+async function getCredentials(emailConfig = false) {
     const p = path.resolve(__dirname, "../config.json");
     const data = fs.readFileSync(p, 'utf8');
     var obj = JSON.parse(data);
+    
     return obj.mail;
     // return {"mail": obj.mail.email, "password": obj.mail.password};
 }
@@ -65,7 +66,7 @@ async function createEmailLoginForm() {
     
             if (triggerClose) { return; }
 
-            await addToJSONFile("mail", {email: email, password: passRaw});
+            await addToJSONFile("mail", {email: email, password: passRaw, showSeen: true});
             resolve(true);
         });
 
